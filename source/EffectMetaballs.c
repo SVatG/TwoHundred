@@ -8,7 +8,8 @@
 
 #include "Tools.h"
 #include "vshader_shbin.h"
-#include "svatg_bin.h"
+#include "svatg2_bin.h"
+#include "cube_bin.h"
 
 // Simple marching cubs impl.
 #include "MarchingCubes.h"
@@ -21,7 +22,10 @@ static shaderProgram_s program;
 static int uLoc_projection, uLoc_modelView;
 static C3D_Mtx projection;
 
+static Pixel* texPixels;
+static Bitmap texture;
 static C3D_Tex sphere_tex;
+
 static C3D_LightEnv lightEnv;
 static C3D_Light light;
 static C3D_LightLut lut_Phong;
@@ -30,6 +34,7 @@ static C3D_LightLut lut_shittyFresnel;
 static Pixel* screenPixels;
 static Bitmap screen;
 static C3D_Tex screen_tex;
+static C3D_Tex logo_tex;
 
 int32_t vertCount;
 static vertex* vboVerts;
@@ -53,7 +58,7 @@ static inline float metaball(float x, float y, float z, float cx, float cy, floa
     float xs = dx * dx;
     float ys = dy * dy;
     float zs = dz * dz;
-    return(1.0 / (xs + ys + zs));
+    return(1.0 / sqrt(xs + ys + zs));
 }
 
 // Metablobbies
@@ -68,6 +73,9 @@ void effectMetaballsInit() {
     
     screenPixels = (Pixel*)linearAlloc(SCREEN_TEXTURE_WIDTH * SCREEN_TEXTURE_HEIGHT * sizeof(Pixel));
     InitialiseBitmap(&screen, SCREEN_TEXTURE_WIDTH, SCREEN_TEXTURE_HEIGHT, BytesPerRowForWidth(SCREEN_TEXTURE_WIDTH), screenPixels);
+    
+    texPixels = (Pixel*)linearAlloc(256 * 256 * sizeof(Pixel));
+    InitialiseBitmap(&texture, 256, 256, BytesPerRowForWidth(256), texPixels);
     
     vboVerts = (vertex*)linearAlloc(sizeof(vertex) * METABALLS_MAX_VERTS);
     valueGrid = malloc(sizeof(float) * GRID_X * GRID_Y * GRID_Z);
@@ -87,12 +95,11 @@ static inline float field(float xx, float yy, float zz, float* xa, float* ya, fl
         abs((yy - GRID_OFFSET) * 3.1)), 
         abs((zz - GRID_OFFSET) * 3.1));
     //val = fmax(-(val - 16.0 * (sin(time * 0.05) * 0.5)), border - 0.5);
-    val = fmax(-(val - 16.0), border - 0.5);
+    val = fmax(-(val - 4.0), border - 0.5);
     return(val);
 }
 
 void effectMetaballsPrepareBalls(float time, float escalate) {    
-    time = 0.0;
     // Movement.
     float movescale = 0.01;
     
@@ -110,9 +117,9 @@ void effectMetaballsPrepareBalls(float time, float escalate) {
     for(int x = 0; x < GRID_X; x++) {
         for(int y = 0; y < GRID_Y; y++) {
             for(int z = 0; z < GRID_Z; z++) {
-                float xx = x * GRID_STEP;
-                float yy = y * GRID_STEP;
-                float zz = z * GRID_STEP;
+                float xx = (float)x * GRID_STEP;
+                float yy = (float)y * GRID_STEP;
+                float zz = (float)z * GRID_STEP;
                 
                 valueGrid[GRID(x, y, z)] = field(xx, yy, zz, xa, ya, za, 2, time);
             }
@@ -191,6 +198,10 @@ void effectMetaballsPrepareBalls(float time, float escalate) {
 //         vboVerts[i].normal[1] = yn / nn;
 //         vboVerts[i].normal[2] = zn / nn;
 //     }
+
+    C3D_TexInit(&logo_tex, SCREEN_TEXTURE_HEIGHT, SCREEN_TEXTURE_WIDTH, GPU_RGBA8);
+    C3D_TexUpload(&logo_tex, cube_bin);
+    C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
 }
 
 // Draw balls 
@@ -215,16 +226,15 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     C3D_BufInfo* bufInfo = C3D_GetBufInfo();
     BufInfo_Init(bufInfo);
     BufInfo_Add(bufInfo, vboVerts, sizeof(vertex), 3, 0x210);
-
-    // Load the texture and bind it to the first texture unit
-    C3D_TexUpload(&sphere_tex, svatg_bin);
+    
+//     C3D_TexUpload(&sphere_tex, svatg2_bin);
     C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
     C3D_TexBind(0, &sphere_tex);
     
     // Calculate the modelView matrix
     C3D_Mtx modelView;
     Mtx_Identity(&modelView);
-    Mtx_Translate(&modelView, 0.0, 0.0, -1.5);
+    Mtx_Translate(&modelView, 0.0, 0.0, -1.4);
     Mtx_RotateX(&modelView, -0.3, true);
     Mtx_RotateZ(&modelView, -0.3, true);
     Mtx_RotateY(&modelView, time * 0.002, true);
@@ -244,13 +254,14 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     C3D_TexEnvOp(env2, C3D_RGB, 0, 0, 0);
     C3D_TexEnvFunc(env2, C3D_RGB, GPU_MODULATE);
     
-//     C3D_TexEnv* env3 = C3D_GetTexEnv(2);
-//     C3D_TexEnvSrc(env3, C3D_RGB, GPU_FRAGMENT_SECONDARY_COLOR, GPU_PREVIOUS, 0);
-//     C3D_TexEnvOp(env3, C3D_RGB, GPU_TEVOP_RGB_SRC_ALPHA , 0, 0);
-//     C3D_TexEnvFunc(env3, C3D_RGB, GPU_ADD);
+    C3D_TexEnv* env3 = C3D_GetTexEnv(2);
+    C3D_TexEnvSrc(env3, C3D_RGB, GPU_FRAGMENT_SECONDARY_COLOR, GPU_PREVIOUS, 0);
+    C3D_TexEnvOp(env3, C3D_RGB, GPU_TEVOP_RGB_SRC_ALPHA , 0, 0);
+    C3D_TexEnvFunc(env3, C3D_RGB, GPU_ADD);
     
-    static const C3D_Material lightMaterial = {
-        { 0.2f, 0.0f, 0.0f }, //ambient
+    static const C3D_Material lightMaterial =
+    {
+        { 0.2f, 0.2f, 0.2f }, //ambient
         { 0.4f, 0.4f, 0.4f }, //diffuse
         { 0.8f, 0.8f, 0.8f }, //specular0
         { 0.0f, 0.0f, 0.0f }, //specular1
@@ -264,9 +275,10 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     LightLut_Phong(&lut_Phong, 3.0);
     C3D_LightEnvLut(&lightEnv, GPU_LUT_D0, GPU_LUTINPUT_LN, false, &lut_Phong);
     
-    // LightLut_FromFunc(&lut_shittyFresnel, badFresnel, 0.6, false);
-    // C3D_LightEnvLut(&lightEnv, GPU_LUT_FR, GPU_LUTINPUT_NV, false, &lut_shittyFresnel);
-    // C3D_LightEnvFresnel(&lightEnv, GPU_PRI_SEC_ALPHA_FRESNEL);
+    LightLut_FromFunc(&lut_shittyFresnel, badFresnel, 0.6, false);
+    C3D_LightEnvLut(&lightEnv, GPU_LUT_FR, GPU_LUTINPUT_NV, false, &lut_shittyFresnel);
+    C3D_LightEnvFresnel(&lightEnv, GPU_PRI_SEC_ALPHA_FRESNEL);
+    
     C3D_FVec lightVec = { { 2.0, 2.0, -2.0, 0.0 } };
 
     C3D_LightInit(&light, &lightEnv);
@@ -285,31 +297,39 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     }
     
     C3D_LightEnvBind(0);
+    
+    printf("\x1b[0;0HMystery: %x", lightEnv.conf.config[0]);
+    printf("\x1b[1;1HMystery: %x", lightEnv.conf.config[1]);
         
 }
 
 void effectMetaballsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate) {
+    
+    // Load the texture and bind it to the first texture unit
+    FillBitmap(&texture, RGBA(129, 97, 0, 255));
+    if(escalate >= 1) {
+        int32_t offset = (int32_t)(time * 0.2) % 30;
+        for(int y = 0; y < 256; y += 30) {
+            DrawFilledRectangle(&texture, 0, y + offset, 256, 15, RGBA(0, 0, 0, 0));
+        }
+    }
+    
+    GSPGPU_FlushDataCache(texPixels, 256 * 256 * sizeof(Pixel));
+    GX_DisplayTransfer((u32*)texPixels, GX_BUFFER_DIM(256, 256), (u32*)sphere_tex.data, GX_BUFFER_DIM(256, 256), TEXTURE_TRANSFER_FLAGS);
+    gspWaitForPPF();
+    
     // Render some 2D stuff
-    float lobes = 3.0;
+    // Blocky noise rotozoom
+    FillBitmap(&screen, RGBAf(0.0, 0.0, 0.0, 1.0));        
     for(int x = 0; x < SCREEN_WIDTH; x += 10) {
         for(int y = 0; y < SCREEN_HEIGHT; y += 10) {
-            float posX = ((float)x / (float)SCREEN_WIDTH) - 0.5;
-            float posY = ((float)y / (float)SCREEN_HEIGHT) - 0.5;
-            float posR = sqrt(posX * posX + posY * posY);
-            float posA = atan2(posX, posY);
-            float dVal = sin(posA * lobes + time / 120.0) + cos(posX * sin(posY + time/400.0) * 5.0);
-            
-            float dvalAdd = fmin(0.8 - (posR - dVal), 0.9);
-            Pixel colorPrimary = RGBAf(0.1 + dvalAdd * 0.1, 0.1 + dvalAdd * 0.2, 0.1 + dvalAdd * 0.4, 1.0);
-            Pixel colorSecondary = RGBAf(dvalAdd * 0.05, dvalAdd * 0.2, dvalAdd * 0.3, 1.0);
-            
-            if((((x / 10) & 1) ^ ((y / 10) & 1)) == 0) {
-                Pixel colorTemp = colorPrimary;
-                colorPrimary = colorSecondary;
-                colorSecondary = colorTemp;
-            }
-            DrawFilledRectangle(&screen, x, y, 10, 10, colorPrimary);
-            DrawFilledRectangle(&screen, x + 2, y + 2, 6, 6, colorSecondary);
+            float ra = time / 3000.0;
+            float cx = (x - SCREEN_WIDTH / 2) * (cos(time / 2000.0) + 1.5);
+            float cy = (y - SCREEN_HEIGHT / 2) * (cos(time / 2000.0) + 1.5);;
+            float rx = cx * sin(ra) + cy * cos(ra);
+            float ry = cx * -cos(ra) + cy * sin(ra);
+            float coolVal = nnnoise(rx + time * 0.001, ry + time * 0.001, 6) / 70000.0;
+            DrawFilledCircle(&screen, x + 5, y + 5, 4, RGBAf(coolVal, coolVal / 2.0, coolVal, 1.0));
         }
     }
     
@@ -329,18 +349,26 @@ void effectMetaballsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
     // Actual scene
     effectMetaballsRenderBalls(-iod, time, escalate);
     
-    // Right eye
-    C3D_FrameDrawOn(targetRight);
+    // Overlay
+    fullscreenQuad(logo_tex, 0.0, 0.0);
     
-    // Fullscreen quad
-    fullscreenQuad(screen_tex, iod, 1.0 / 10.0);
+    if(iod > 0.0) {
+        // Right eye
+        C3D_FrameDrawOn(targetRight);
     
-    // Actual scene
-    effectMetaballsRenderBalls(iod, time, escalate);
+        // Fullscreen quad
+        fullscreenQuad(screen_tex, iod, 1.0 / 10.0);
+    
+        // Actual scene
+        effectMetaballsRenderBalls(iod, time, escalate);
+        
+        // Overlay
+        fullscreenQuad(logo_tex, 0.0, 0.0);
+    }
 }
 
 void effectMetaballsExit() {
-// Free the texture
+    // Free the texture
     C3D_TexDelete(&sphere_tex);
     C3D_TexDelete(&screen_tex);
 
@@ -351,7 +379,8 @@ void effectMetaballsExit() {
     shaderProgramFree(&program);
     DVLB_Free(vshader_dvlb);
     
-    // Free the screen bitmap
+    // Free the bitmaps
     linearFree(screenPixels);
+    linearFree(texPixels);
     free(valueGrid);
 }

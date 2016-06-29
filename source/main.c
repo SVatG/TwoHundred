@@ -3,6 +3,8 @@
 
 #include "Effects.h"
 
+#define CLEAR_COLOR 0x555555FF
+
 int main() {
     // Initialize graphics
     gfxInit(GSP_RGBA8_OES, GSP_BGR8_OES, false);
@@ -26,19 +28,18 @@ int main() {
     uint64_t startTick = svcGetSystemTick();
     
     // Start up first effect
-    //effectEcosphereInit();
-    effectMetaballsInit();
+//     effectNordlichtInit();
+    effectGreetsInit();
     
     // Main loop
-    float escalate = 0.0;
+    int escalate = 0;
     int haveEscalated = 0;
+    int curEscalate = escalate;
     while (aptMainLoop()) {
         hidScanInput();
 
         int64_t currentTick = svcGetSystemTick() - startTick;
         float time = currentTick * 0.000001;
-        printf("\x1b[28;14HMystery: %lud", linearSpaceFree());
-        printf("\x1b[29;15HMystery: %lld", currentTick);
             
         // Respond to user input
         u32 kDown = hidKeysDown();
@@ -47,25 +48,46 @@ int main() {
         }
         
         if (kDown & KEY_A && haveEscalated == 0) {
-            escalate += 1.0;
+            escalate += 1;
             haveEscalated = 1;
         }
         else {
             haveEscalated = 0;
         }
+        
+//         // Init / Deinit
+//         if(escalate == 1 && haveEscalated) {
+//             curEscalate = escalate;
+//             effectNordlichtExit();
+//             effectIcosphereInit();
+//         }
+//         
+//         if(escalate == 3 && haveEscalated) {
+//             curEscalate = escalate;
+//             effectIcosphereExit();
+//             effectMetaballsInit();
+//         }
+        
         float slider = osGet3DSliderState();
-        float iod = slider/3;
+        float iod = slider / 3.0;
         
         // Render the scene
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-            effectMetaballsRender(targetLeft, targetRight, iod, time, escalate);
-            //effectEcosphereRender(targetLeft, targetRight, iod, time, escalate);
+            // effectNordlichtRender(targetLeft, targetRight, iod, time, curEscalate);
+//             if(escalate < 1) {
+//                 effectNordlichtRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+//             } else if(escalate < 3) {
+//                 effectIcosphereRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+//             } else if(escalate < 5) {
+//                 effectMetaballsRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+//             }
+            effectGreetsRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
         C3D_FrameEnd(0);
     }
     
     // Clean up
-    //effectIcosphereExit();
-    effectMetaballsExit();
+    //effectMetaballsExit();
+    effectGreetsExit();
     
     // Sound off
     csndExit();

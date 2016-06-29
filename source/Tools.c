@@ -20,6 +20,26 @@ float badFresnel(float input, float expo) {
     return(fmax(0.0, 0.9 - powf(fmax(input, 0.0), expo)));
 }
 
+float lutPosPower(float input, float expo) {
+    return(powf(fmax(input, 0.0), expo));
+}
+
+float lutAbsLinear(float input, float offset) {
+    return(fmax(0.0, offset + abs(input)));
+}
+
+float lutAbsInverseLinear(float input, float offset) {
+    return(fmax(0.0, offset - abs(input)));
+}
+
+float lutOne(float input, float ignored) {
+    return(1.0);
+}
+
+float lutZero(float input, float ignored) {
+    return(0.0);
+}
+
 static DVLB_s* vshader_flat_dvlb;
 static shaderProgram_s shaderProgramFlat;
 static int shaderProgramFlatCompiled;
@@ -69,6 +89,11 @@ void fullscreenQuad(C3D_Tex texture, float iod, float iodmult) {
     C3D_TexEnvOp(env3, C3D_RGB, 0, 0, 0);
     C3D_TexEnvFunc(env3, C3D_RGB, GPU_REPLACE);
     
+    C3D_TexEnv* env4 = C3D_GetTexEnv(3);
+    C3D_TexEnvSrc(env4, C3D_RGB, GPU_PREVIOUS, 0, 0);
+    C3D_TexEnvOp(env4, C3D_RGB, 0, 0, 0);
+    C3D_TexEnvFunc(env4, C3D_RGB, GPU_REPLACE);
+    
     float preShift = iodmult > 0.0 ? 0.05 : 0.0;
     float textureLeft = -iod * iodmult + preShift;
     float textureRight = (float)SCREEN_WIDTH / (float)SCREEN_TEXTURE_WIDTH - iod * iodmult - preShift;
@@ -82,22 +107,22 @@ void fullscreenQuad(C3D_Tex texture, float iod, float iodmult) {
     C3D_ImmDrawBegin(GPU_TRIANGLES);
         
         C3D_ImmSendAttrib(0.0, 0.0, 0.5f, 0.0f);
-        C3D_ImmSendAttrib(textureLeft, textureTop, 0.0f, 0.0f);
-
-        C3D_ImmSendAttrib(SCREEN_WIDTH, SCREEN_HEIGHT, 0.5f, 0.0f);
-        C3D_ImmSendAttrib(textureRight, textureBottom, 0.0f, 0.0f);
-
-        C3D_ImmSendAttrib(SCREEN_WIDTH, 0.0, 0.5f, 0.0f);
-        C3D_ImmSendAttrib(textureRight, textureTop, 0.0f, 0.0f);
-
-        C3D_ImmSendAttrib(0.0, 0.0, 0.5f, 0.0f);
-        C3D_ImmSendAttrib(textureLeft, textureTop, 0.0f, 0.0f);
-
-        C3D_ImmSendAttrib(0.0, SCREEN_HEIGHT, 0.5f, 0.0f);
         C3D_ImmSendAttrib(textureLeft, textureBottom, 0.0f, 0.0f);
 
         C3D_ImmSendAttrib(SCREEN_WIDTH, SCREEN_HEIGHT, 0.5f, 0.0f);
+        C3D_ImmSendAttrib(textureRight, textureTop, 0.0f, 0.0f);
+
+        C3D_ImmSendAttrib(SCREEN_WIDTH, 0.0, 0.5f, 0.0f);
         C3D_ImmSendAttrib(textureRight, textureBottom, 0.0f, 0.0f);
+
+        C3D_ImmSendAttrib(0.0, 0.0, 0.5f, 0.0f);
+        C3D_ImmSendAttrib(textureLeft, textureBottom, 0.0f, 0.0f);
+
+        C3D_ImmSendAttrib(0.0, SCREEN_HEIGHT, 0.5f, 0.0f);
+        C3D_ImmSendAttrib(textureLeft, textureTop, 0.0f, 0.0f);
+
+        C3D_ImmSendAttrib(SCREEN_WIDTH, SCREEN_HEIGHT, 0.5f, 0.0f);
+        C3D_ImmSendAttrib(textureRight, textureTop, 0.0f, 0.0f);
 
     C3D_ImmDrawEnd();
 }

@@ -11,14 +11,13 @@
 #include "Drawing.h"
 #include "Perlin.h"
 #include "VectorLibrary/Vector.h"
+#include "VectorLibrary/Matrix.h"
 
 #define SCREEN_WIDTH 400
 #define SCREEN_HEIGHT 240
 
 #define SCREEN_TEXTURE_WIDTH 512
 #define SCREEN_TEXTURE_HEIGHT 512
-
-#define CLEAR_COLOR 0x68B0D8FF
 
 #define DISPLAY_TRANSFER_FLAGS \
     (GX_TRANSFER_FLIP_VERT(0) | GX_TRANSFER_OUT_TILED(0) | GX_TRANSFER_RAW_COPY(0) | \
@@ -37,7 +36,14 @@
     
 extern int RandomInteger();
 extern int nnnoise(int x, int y, int oct);
+
 extern float badFresnel(float input, float expo);
+extern float lutAbsLinear(float input, float offset);
+extern float lutAbsInverseLinear(float input, float offset);
+extern float lutOne(float input, float offset);
+extern float lutZero(float input, float offset);
+extern float lutPosPower(float input, float expo);
+
 extern void fullscreenQuad(C3D_Tex texture, float iod, float iodmult);
 
 extern int32_t mulf32(int32_t a, int32_t b);
@@ -51,6 +57,20 @@ inline void setVert(vertex* vert, vec3_t p, vec2_t t) {
     vert->position[2] = p.z;
     vert->texcoord[0] = t.x;
     vert->texcoord[1] = t.y;
+}
+
+// a -- b
+// |    |
+// d -- c
+inline int buildQuad(vertex* vert, vec3_t a, vec3_t b, vec3_t c, vec3_t d, vec2_t ta, vec2_t tb, vec2_t tc, vec2_t td) {
+        setVert(vert, a, ta); vert++;
+        setVert(vert, b, tb); vert++;
+        setVert(vert, c, td); vert++;        
+        setVert(vert, a, ta); vert++;
+        setVert(vert, c, td); vert++;
+        setVert(vert, d, tc); vert++;
+        
+        return 6;
 }
 
 #endif

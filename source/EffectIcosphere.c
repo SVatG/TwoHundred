@@ -2,6 +2,7 @@
 
 #include "vshader_shbin.h"
 #include "svatg_bin.h"
+#include "scroller_bin.h"
 #include "Icosphere.h"
 
 #define RING_MAX_VERTS 1000
@@ -21,25 +22,12 @@ static C3D_LightLut lut_shittyFresnel;
 static Pixel* screenPixels;
 static Bitmap screen;
 static C3D_Tex screen_tex;
+static C3D_Tex logo_tex;
 
 static vertex* vboVertsSphere;
 static vertex* vboVertsRing;
 
-// a -- b
-// |    |
-// d -- c
-inline int buildQuad(vertex* vert, vec3_t a, vec3_t b, vec3_t c, vec3_t d, vec2_t ta, vec2_t tb, vec2_t tc, vec2_t td) {
-        setVert(vert, a, ta); vert++;
-        setVert(vert, b, tb); vert++;
-        setVert(vert, c, td); vert++;        
-        setVert(vert, a, ta); vert++;
-        setVert(vert, c, td); vert++;
-        setVert(vert, d, tc); vert++;
-        
-        return 6;
-}
-
-void effectEcosphereInit(void) {
+void effectIcosphereInit(void) {
     // Load the vertex shader, create a shader program and bind it
     vshader_dvlb = DVLB_ParseFile((u32*)vshader_shbin, vshader_shbin_size);
     shaderProgramInit(&program);
@@ -53,6 +41,10 @@ void effectEcosphereInit(void) {
     
     vboVertsSphere = (vertex*)linearAlloc(sizeof(vertex) * icosphereNumFaces * 3);
     vboVertsRing = (vertex*)linearAlloc(sizeof(vertex) * RING_MAX_VERTS);
+    
+    C3D_TexInit(&logo_tex, SCREEN_TEXTURE_HEIGHT, SCREEN_TEXTURE_WIDTH, GPU_RGBA8);
+    C3D_TexUpload(&logo_tex, scroller_bin);
+    C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
 }
 
 static void renderSphere(float iod, float time, float escalate) {
@@ -333,7 +325,7 @@ void effectIcosphereRenderSingle(float iod, float time, float escalate) {
     renderRing(iod, time, escalate);
 }
 
-void effectEcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate) {
+void effectIcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate) {
     // Render some 2D stuff
     float lobes = 3.0;
     for(int x = 0; x < SCREEN_WIDTH; x += 10) {
@@ -371,14 +363,22 @@ void effectEcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
     // Actual scene
     effectIcosphereRenderSingle(-iod, time, escalate);
 
-    // Right eye
-    C3D_FrameDrawOn(targetRight);
+    // Overlay
+    fullscreenQuad(logo_tex, 0.0, 0.0);
     
-    // Fullscreen quad
-    fullscreenQuad(screen_tex, iod, 1.0 / 10.0);
+    if(iod > 0.0) {
+        // Right eye
+        C3D_FrameDrawOn(targetRight);
     
-    // Actual scene
-    effectIcosphereRenderSingle(iod, time, escalate);
+        // Fullscreen quad
+        fullscreenQuad(screen_tex, iod, 1.0 / 10.0);
+    
+        // Actual scene
+        effectIcosphereRenderSingle(iod, time, escalate);
+        
+        // Overlay
+        fullscreenQuad(logo_tex, 0.0, 0.0);
+    }
 }
 
 void effectIcosphereExit(void) {

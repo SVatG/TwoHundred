@@ -30,11 +30,19 @@ while(<>) {
         push @vertices, [$1, $2, $3];
     }
 
-        # Assume normals are per face, no whatever calculate normals later
+    # Assume normals are per face, no whatever calculate normals later
     if( $_ =~ /f ([0-9]+)\/[0-9]*\/([0-9]+) ([0-9]+)\/[0-9]*\/([0-9]+) ([0-9]+)\/[0-9]*\/([0-9]+)/ ) {
         push @faces, [$1, $3, $5, $2];
     }
 
+    if( $_ =~ /f ([0-9]+) ([0-9]+) ([0-9]+)/ ) {
+        push @faces, [$1, $2, $3];
+    }
+    
+    if( $_ =~ /f ([0-9]+) ([0-9]+) ([0-9]+) ([0-9]+)/ ) {
+        push @faces, [$1, $2, $3, $4];
+    }
+    
 # 	if( $_ =~ /vn ([^ ]+) ([^ ]+) ([^ ]+)/ ) {
 #                 my $normalid = "$1__$2__$3__";
 # 		push @normals, [$1, $2, $3];

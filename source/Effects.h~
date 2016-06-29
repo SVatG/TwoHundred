@@ -3,8 +3,24 @@
 
 #include "Tools.h"
 
-extern void effectEcosphereInit(void);
-extern void effectEcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
+extern void effectIcosphereInit(void);
+extern void effectIcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
 extern void effectIcosphereExit(void);
-    
+
+extern void effectMetaballsInit();
+extern void effectMetaballsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
+extern void effectMetaballsExit(void);
+
+
+extern void effectNordlichtInit();
+extern void effectNordlichtRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
+extern void effectNordlichtExit(void);
+
+extern void effectTunnelInit();
+extern void effectTunnnelRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
+extern void effectTunnelExit(void);
+
+extern void effectGreetsInit();
+extern void effectGreetsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
+extern void effectGreezsExit(void);
 #endif
