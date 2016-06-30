@@ -297,10 +297,6 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     }
     
     C3D_LightEnvBind(0);
-    
-    printf("\x1b[0;0HMystery: %x", lightEnv.conf.config[0]);
-    printf("\x1b[1;1HMystery: %x", lightEnv.conf.config[1]);
-        
 }
 
 void effectMetaballsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate) {

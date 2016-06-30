@@ -8,8 +8,9 @@
 
 #include "Tools.h"
 #include "vshader_shbin.h"
-#include "svatg3_bin.h"
-#include "logo_bin.h"
+#include "tunnel_bin.h"
+#include "tunnel_logo_bin.h"
+#include "Perlin.h"
 
 #include "Lighthouse.h"
 
@@ -24,13 +25,10 @@ static C3D_Mtx projection;
 static C3D_Tex sphere_tex;
 static C3D_Tex logo_tex;
 
-static C3D_LightEnv lightEnv;
-static C3D_Light light;
-static C3D_LightLut lut_Phong;
-static C3D_LightLut lut_shittyFresnel;
-
 int32_t vertCount;
 static vertex* vboVerts;
+
+#define SEGMENTS 20
 
 // Ohne tunnel geht eben nicht
 void effectTunnelInit() {
@@ -45,15 +43,59 @@ void effectTunnelInit() {
     vboVerts = (vertex*)linearAlloc(sizeof(vertex) * NORDLICHT_MAX_VERTS);
     
     // Load the texture and bind it to the first texture unit
-    C3D_TexUpload(&sphere_tex, svatg3_bin);
+    C3D_TexUpload(&sphere_tex, tunnel_bin);
     C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
     
-    C3D_TexUpload(&logo_tex, logo_bin);
+    C3D_TexUpload(&logo_tex, tunnel_logo_bin);
     C3D_TexSetFilter(&logo_tex, GPU_LINEAR, GPU_NEAREST);
 }
 
 void effectTunnelUpdate(float time, float escalate) {
-    // TODO
+    int depth = 50;
+    float zscale = 0.2;
+    float rscale = 1.8;
+    float rscale_inner = 1.3;
+    
+    vertCount = 0;
+    vec3_t ringPos[SEGMENTS];
+    vec3_t ringPosPrev[SEGMENTS];
+    
+    vec3_t ringPosInner[SEGMENTS];
+    vec3_t ringPosPrevInner[SEGMENTS];
+    
+    float distance = -time * 0.01;
+    float offset = fmod(distance, 1.0);
+    // printf("%f %f\n", distance, offset);
+    
+    for(int z = depth - 1; z >= 0; z--) {
+        float zo = z + offset;
+        float xo = sin(zo * 0.05) * (zo / 10.0);
+        float yo = cos(zo * 0.05) * (zo / 10.0);
+        
+        for(int s = 0; s < SEGMENTS; s++) {
+            float rn = 0.9 + noise_at(z - distance + offset, s, 0.5) / 4.0;
+            float sf = (((float)s) / (float)SEGMENTS) * 2.0 * 3.1415;
+            ringPos[s] = vec3((sin(sf) * rscale + xo) * rn, (cos(sf) * rscale + yo) * rn, -zo * zscale);
+            ringPosInner[s] = vec3((sin(sf) * rscale_inner + xo) * rn, (cos(sf) * rscale_inner + yo) * rn, -zo * zscale);
+            
+        }
+        
+        if(z != depth - 1) {
+            for(int s = 0; s < SEGMENTS; s++) {
+                int sn = (s + 1) % SEGMENTS;
+                vertCount += buildQuad(&(vboVerts[vertCount]), ringPosPrev[s], ringPos[s], ringPos[sn], ringPosPrev[sn], 
+                                    vec2(0.5, 0.5), vec2(1, 0.5), vec2(0.5, 1), vec2(1, 1));
+                
+                vertCount += buildQuad(&(vboVerts[vertCount]), ringPosPrevInner[s], ringPosInner[s], ringPosInner[sn], ringPosPrevInner[sn], 
+                                    vec2(0.0, 0.0), vec2(0.5, 0.0), vec2(0.0, 0.5), vec2(0.5, 0.5));
+            }
+        }
+        
+        for(int s = 0; s < SEGMENTS; s++) {
+            ringPosPrev[s] = ringPos[s];
+            ringPosPrevInner[s] = ringPosInner[s];
+        }
+    }
 }
 
 // Draw 
@@ -75,16 +117,16 @@ void effectTunnelDraw(float iod, float time, float escalate) {
     Mtx_PerspStereoTilt(&projection, 65.0f*M_PI/180.0f, 400.0f/240.0f, 0.01f, 1000.0f, iod, 2.0f);
 
     // Load the texture and bind it to the first texture unit
-    C3D_TexUpload(&sphere_tex, svatg3_bin);
+    C3D_TexUpload(&sphere_tex, tunnel_bin);
     C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
     C3D_TexBind(0, &sphere_tex);
     
     // Calculate the modelView matrix
     C3D_Mtx modelView;
     Mtx_Identity(&modelView);
-    Mtx_Translate(&modelView, 0.0, 0.0, -1.5);
-    Mtx_RotateX(&modelView,  0.5, true);
-    Mtx_RotateZ(&modelView, -0.3, true);
+    Mtx_Translate(&modelView, 0.0, 0.0, 0.0);
+//     Mtx_RotateX(&modelView,  0.5, true);
+//     Mtx_RotateZ(&modelView, -0.3, true);
     //Mtx_RotateY(&modelView, time * 0.002, true);
     
     // Update the uniforms
@@ -92,52 +134,16 @@ void effectTunnelDraw(float iod, float time, float escalate) {
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView,  &modelView);
 
     C3D_TexEnv* env = C3D_GetTexEnv(0);
-    C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, GPU_FRAGMENT_PRIMARY_COLOR, 0);
+    C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, 0, 0);
     C3D_TexEnvOp(env, C3D_Both, 0, 0, 0);
-    C3D_TexEnvFunc(env, C3D_Both, GPU_MODULATE);
-    
-    C3D_TexEnv* env2 = C3D_GetTexEnv(1);
-    C3D_TexEnvSrc(env2, C3D_Alpha, GPU_TEXTURE0, 0, 0);
-    C3D_TexEnvOp(env2, C3D_Alpha, 0, 0, 0);
-    C3D_TexEnvFunc(env2, C3D_Alpha, GPU_REPLACE);
-    
-    C3D_TexEnv* env3 = C3D_GetTexEnv(2);
-    C3D_TexEnvSrc(env3, C3D_RGB, GPU_FRAGMENT_SECONDARY_COLOR, GPU_PREVIOUS, 0);
-    C3D_TexEnvOp(env3, C3D_RGB, GPU_TEVOP_RGB_SRC_ALPHA , 0, 0);
-    C3D_TexEnvFunc(env3, C3D_RGB, GPU_ADD);
-    
-    static const C3D_Material lightMaterial =
-    {
-        { 0.6f, 0.6f, 0.6f }, //ambient
-        { 0.4f, 0.4f, 0.4f }, //diffuse
-        { 0.8f, 0.8f, 0.8f }, //specular0
-        { 0.0f, 0.0f, 0.0f }, //specular1
-        { 0.0f, 0.0f, 0.0f }, //emission
-    };
-
-    C3D_LightEnvInit(&lightEnv);
-    C3D_LightEnvBind(&lightEnv);
-    C3D_LightEnvMaterial(&lightEnv, &lightMaterial);
-
-    LightLut_Phong(&lut_Phong, 3.0);
-    C3D_LightEnvLut(&lightEnv, GPU_LUT_D0, GPU_LUTINPUT_LN, false, &lut_Phong);
-    
-    LightLut_FromFunc(&lut_shittyFresnel, badFresnel, 0.6, false);
-    C3D_LightEnvLut(&lightEnv, GPU_LUT_FR, GPU_LUTINPUT_NV, false, &lut_shittyFresnel);
-    C3D_LightEnvFresnel(&lightEnv, GPU_PRI_SEC_ALPHA_FRESNEL);
-    
-    C3D_FVec lightVec = { { 2.0, 2.0, -2.0, 0.0 } };
-
-    C3D_LightInit(&light, &lightEnv);
-    C3D_LightColor(&light, 1.0, 1.0, 1.0);
-    C3D_LightPosition(&light, &lightVec);
-    
-    // Depth test is back
-    C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+    C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
     
     // To heck with culling
     C3D_CullFace(GPU_CULL_NONE);
 
+    C3D_DepthTest(false, GPU_GEQUAL, GPU_WRITE_COLOR);
+    
+    C3D_LightEnvBind(0);
     
     // Draw the VBO
     C3D_TexBind(0, &sphere_tex);    
@@ -149,6 +155,9 @@ void effectTunnelDraw(float iod, float time, float escalate) {
     if(vertCount > 0) {
         C3D_DrawArrays(GPU_TRIANGLES, 0, vertCount);
     }
+    
+    // Depth test is back
+    C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
     
     C3D_LightEnvBind(0);
 }
@@ -162,12 +171,18 @@ void effectTunnelRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRi
     // Actual scene
     effectTunnelDraw(-iod, time, escalate);
     
+    // Overlay
+    fullscreenQuad(logo_tex, 0.0, 0.0);
+    
     if(iod > 0.0) {
         // Right eye
         C3D_FrameDrawOn(targetRight);
     
         // Actual scene
         effectTunnelDraw(iod, time, escalate);
+        
+        // Overlay
+        fullscreenQuad(logo_tex, 0.0, 0.0);
     }
 }
 

@@ -25,11 +25,41 @@ int main() {
 
     // Play music
     csndPlaySound(0x8, SOUND_ONE_SHOT | SOUND_FORMAT_16BIT, 32000, 1.0, 0.0, (u32*)music_bin, NULL, music_bin_size);
-    uint64_t startTick = svcGetSystemTick();
+    int64_t startTick = svcGetSystemTick();
     
     // Start up first effect
-//     effectNordlichtInit();
-    effectGreetsInit();
+    effectTunnelInit();
+    
+    int currentSwitchTick = 0;
+    int64_t switchTicks[8];
+    
+    float fudge = -17570.0;
+    float songOrigSamples = 4056096.0;
+    float songOrigRate = 48000.0;
+    float songSeconds = songOrigSamples / songOrigRate;
+    float halfSectionSeconds = songSeconds / 10.0;
+    
+    float cpuHz = 268123480.0;
+    
+    // Tunnel
+    switchTicks[0] = (halfSectionSeconds * 2.0 + fudge / songOrigRate) * cpuHz;
+    
+    // Iso
+    switchTicks[1] = (halfSectionSeconds * 3.0 + fudge / songOrigRate) * cpuHz;
+    switchTicks[2] = (halfSectionSeconds * 4.0 + fudge / songOrigRate) * cpuHz;
+    
+    // Meta
+    switchTicks[3] = (halfSectionSeconds * 5.0 + fudge / songOrigRate) * cpuHz;
+    switchTicks[4] = (halfSectionSeconds * 6.0 + fudge / songOrigRate) * cpuHz;
+    
+    // Greet
+    switchTicks[5] = (halfSectionSeconds * 8.0 + fudge / songOrigRate) * cpuHz;
+    
+    // Nordlicht
+    switchTicks[6] = (halfSectionSeconds * 10.0 + fudge / songOrigRate) * cpuHz;
+    
+    // Nada
+    switchTicks[7] = (halfSectionSeconds * 40.0 + fudge / songOrigRate) * cpuHz;
     
     // Main loop
     int escalate = 0;
@@ -47,47 +77,63 @@ int main() {
             break; // break in order to return to hbmenu
         }
         
-        if (kDown & KEY_A && haveEscalated == 0) {
+        //if (kDown & KEY_A && haveEscalated == 0) {
+        if(currentTick > switchTicks[currentSwitchTick]) {
+            currentSwitchTick += 1;
             escalate += 1;
             haveEscalated = 1;
+            // printf("%lld\n", currentTick);
         }
         else {
             haveEscalated = 0;
         }
         
-//         // Init / Deinit
-//         if(escalate == 1 && haveEscalated) {
-//             curEscalate = escalate;
-//             effectNordlichtExit();
-//             effectIcosphereInit();
-//         }
-//         
-//         if(escalate == 3 && haveEscalated) {
-//             curEscalate = escalate;
-//             effectIcosphereExit();
-//             effectMetaballsInit();
-//         }
+        // Init / Deinit
+        if(escalate == 1 && haveEscalated) {
+            curEscalate = escalate;
+            effectTunnelExit();
+            effectIcosphereInit();
+        }
+        
+        if(escalate == 3 && haveEscalated) {
+            curEscalate = escalate;
+            effectIcosphereExit();
+            effectMetaballsInit();
+        }
+        
+        if(escalate == 5 && haveEscalated) {
+            curEscalate = escalate;
+            effectMetaballsExit();
+            effectGreetsInit();
+        }
+        
+        if(escalate == 6 && haveEscalated) {
+            curEscalate = escalate;
+            effectGreetsExit();
+            effectNordlichtInit();
+        }
         
         float slider = osGet3DSliderState();
         float iod = slider / 3.0;
         
         // Render the scene
         C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
-            // effectNordlichtRender(targetLeft, targetRight, iod, time, curEscalate);
-//             if(escalate < 1) {
-//                 effectNordlichtRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
-//             } else if(escalate < 3) {
-//                 effectIcosphereRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
-//             } else if(escalate < 5) {
-//                 effectMetaballsRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
-//             }
-            effectGreetsRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+            if(escalate < 1) {
+                effectTunnelRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+            } else if(escalate < 3) {
+                effectIcosphereRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+            } else if(escalate < 5) {
+                effectMetaballsRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+            } else if(escalate < 6) {
+                effectGreetsRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+            } else if(escalate < 7) {
+                effectNordlichtRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
+            }
         C3D_FrameEnd(0);
     }
     
     // Clean up
-    //effectMetaballsExit();
-    effectGreetsExit();
+    effectNordlichtExit();
     
     // Sound off
     csndExit();

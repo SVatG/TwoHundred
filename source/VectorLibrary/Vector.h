@@ -25,8 +25,8 @@ typedef struct { float x,y,z,w; } vec4_t;
 
 // Constructors
 
-static inline vec2_t vec2(float x,float y) { return (vec2_t){x,y}; }
-static inline vec3_t vec3(float x,float y,float z) { return (vec3_t){x,y,z}; }
+inline vec2_t vec2(float x,float y) { return (vec2_t){x,y}; }
+inline vec3_t vec3(float x,float y,float z) { return (vec3_t){x,y,z}; }
 static inline vec4_t vec4(float x,float y,float z,float w) { return (vec4_t){x,y,z,w}; }
 
 static inline vec2_t vec2cyl(float r,float angle)
@@ -70,7 +70,7 @@ static inline bool vec4almostequal(vec4_t a,vec4_t b,float epsilon) { return fab
 // Arithmetic operations
 
 static inline vec2_t vec2add(vec2_t a,vec2_t b) { return vec2(a.x+b.x,a.y+b.y); }
-static inline vec3_t vec3add(vec3_t a,vec3_t b) { return vec3(a.x+b.x,a.y+b.y,a.z+b.z); }
+inline vec3_t vec3add(vec3_t a,vec3_t b) { return vec3(a.x+b.x,a.y+b.y,a.z+b.z); }
 static inline vec4_t vec4add(vec4_t a,vec4_t b) { return vec4(a.x+b.x,a.y+b.y,a.z+b.z,a.w+b.w); }
 
 static inline vec2_t vec2add3(vec2_t a,vec2_t b,vec2_t c) { return vec2(a.x+b.x+c.x,a.y+b.y+c.y); }
@@ -78,11 +78,11 @@ static inline vec3_t vec3add3(vec3_t a,vec3_t b,vec3_t c) { return vec3(a.x+b.x+
 static inline vec4_t vec4add3(vec4_t a,vec4_t b,vec4_t c) { return vec4(a.x+b.x+c.x,a.y+b.y+c.y,a.z+b.z+c.z,a.w+b.w+c.w); }
 
 static inline vec2_t vec2sub(vec2_t a,vec2_t b) { return vec2(a.x-b.x,a.y-b.y); }
-static inline vec3_t vec3sub(vec3_t a,vec3_t b) { return vec3(a.x-b.x,a.y-b.y,a.z-b.z); }
+inline vec3_t vec3sub(vec3_t a,vec3_t b) { return vec3(a.x-b.x,a.y-b.y,a.z-b.z); }
 static inline vec4_t vec4sub(vec4_t a,vec4_t b) { return vec4(a.x-b.x,a.y-b.y,a.z-b.z,a.w-b.w); }
 
 static inline vec2_t vec2mul(vec2_t v,float s) { return vec2(v.x*s,v.y*s); }
-static inline vec3_t vec3mul(vec3_t v,float s) { return vec3(v.x*s,v.y*s,v.z*s); }
+inline vec3_t vec3mul(vec3_t v,float s) { return vec3(v.x*s,v.y*s,v.z*s); }
 static inline vec4_t vec4mul(vec4_t v,float s) { return vec4(v.x*s,v.y*s,v.z*s,v.w*s); }
 
 static inline vec2_t vec2div(vec2_t v,float s) { return vec2(v.x/s,v.y/s); }

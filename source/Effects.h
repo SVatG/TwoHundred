@@ -17,7 +17,7 @@ extern void effectNordlichtRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget
 extern void effectNordlichtExit(void);
 
 extern void effectTunnelInit();
-extern void effectTunnnelRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
+extern void effectTunnelRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRight, float iod, float time, float escalate);
 extern void effectTunnelExit(void);
 
 extern void effectGreetsInit();

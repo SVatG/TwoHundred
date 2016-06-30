@@ -73,4 +73,19 @@ inline int buildQuad(vertex* vert, vec3_t a, vec3_t b, vec3_t c, vec3_t d, vec2_
         return 6;
 }
 
+inline int buildQuadProjectiveXY(vertex* vert, vec3_t a, vec3_t b, vec3_t c, vec3_t d, float biasx, float biasy, float scale) {
+        vec2_t ta = vec2((a.x + biasx) * scale, (a.y + biasy) * scale);
+        vec2_t tb = vec2((b.x + biasx) * scale, (b.y + biasy) * scale);
+        vec2_t tc = vec2((c.x + biasx) * scale, (c.y + biasy) * scale);
+        vec2_t td = vec2((d.x + biasx) * scale, (d.y + biasy) * scale);
+        setVert(vert, a, ta); vert++;
+        setVert(vert, b, tb); vert++;
+        setVert(vert, c, td); vert++;        
+        setVert(vert, a, ta); vert++;
+        setVert(vert, c, td); vert++;
+        setVert(vert, d, tc); vert++;
+        
+        return 6;
+}
+
 #endif
