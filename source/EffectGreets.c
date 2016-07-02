@@ -11,12 +11,18 @@
 #include "svatg3_bin.h"
 #include "greets_bin.h"
 #include "traj_0_bin.h"
+#include "traj_1_bin.h"
+#include "traj_2_bin.h"
+#include "traj_3_bin.h"
+#include "traj_4_bin.h"
+#include "traj_5_bin.h"
+#include "traj_6_bin.h"
 #include "Lighthouse.h"
 
 #define NORDLICHT_MAX_VERTS 20000
 #define GREET_BREAKS 30
-#define GREET_SPEED 0.1
-#define NUM_GREETS 5
+#define GREET_SPEED 0.17
+#define NUM_GREETS 8
 
 static DVLB_s* vshader_dvlb;
 static shaderProgram_s program;
@@ -91,12 +97,45 @@ void effectGreetsInit() {
     texPixels = (Pixel*)linearAlloc(256 * 256 * sizeof(Pixel));
     InitialiseBitmap(&texture, 256, 256, BytesPerRowForWidth(256), texPixels);
     
-    for(int i = 0; i < 5; i++) {
-        traj[i] = (int32_t*)traj_0_bin;
-        trajSize[i] = traj_0_bin_size / (2 * sizeof(int32_t));
-        trajOffset[i] = 0;
-        trajPosition[i] = 1;
-    }
+    traj[0] = (int32_t*)traj_0_bin;
+    trajSize[0] = traj_0_bin_size / (2 * sizeof(int32_t));
+    trajOffset[0] = 0;
+    trajPosition[0] = 1;
+    
+    traj[1] = (int32_t*)traj_0_bin;
+    trajSize[1] = traj_0_bin_size / (2 * sizeof(int32_t));
+    trajOffset[1] = 0;
+    trajPosition[1] = 1;
+    
+    traj[2] = (int32_t*)traj_1_bin;
+    trajSize[2] = traj_1_bin_size / (2 * sizeof(int32_t));
+    trajOffset[2] = 0;
+    trajPosition[2] = 1;
+
+    traj[3] = (int32_t*)traj_2_bin;
+    trajSize[3] = traj_2_bin_size / (2 * sizeof(int32_t));
+    trajOffset[3] = 0;
+    trajPosition[3] = 1;
+    
+    traj[4] = (int32_t*)traj_3_bin;
+    trajSize[4] = traj_3_bin_size / (2 * sizeof(int32_t));
+    trajOffset[4] = 0;
+    trajPosition[4] = 1;
+    
+    traj[5] = (int32_t*)traj_4_bin;
+    trajSize[5] = traj_4_bin_size / (2 * sizeof(int32_t));
+    trajOffset[5] = 0;
+    trajPosition[5] = 1;
+    
+    traj[6] = (int32_t*)traj_5_bin;
+    trajSize[6] = traj_5_bin_size / (2 * sizeof(int32_t));
+    trajOffset[6] = 0;
+    trajPosition[6] = 1;
+    
+    traj[7] = (int32_t*)traj_6_bin;
+    trajSize[7] = traj_6_bin_size / (2 * sizeof(int32_t));
+    trajOffset[7] = 0;
+    trajPosition[7] = 1;
 }
 
 void effectGreetsUpdate(float time, float escalate) {
@@ -219,7 +258,7 @@ void effectGreetsDraw(float iod, float time, float escalate) {
     // Calculate the modelView matrix
     C3D_Mtx modelView;
     Mtx_Identity(&modelView);
-    Mtx_Translate(&modelView, -0.8 /*- time * 0.0005*/ + sin(time * 0.001) * 0.1, 1.0, -1.5);
+    Mtx_Translate(&modelView, -1.2 /*- time * 0.0005*/ + sin(time * 0.001) * 0.1, 1.0, -1.5);
 //     Mtx_RotateX(&modelView,  0.5, true);
 //     Mtx_RotateZ(&modelView, -0.3, true);
     Mtx_RotateY(&modelView, sin(time * 0.001) * 0.1, true);
@@ -314,7 +353,9 @@ void effectGreetsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRi
     
     GSPGPU_FlushDataCache(texPixels, 256 * 256 * sizeof(Pixel));
     GX_DisplayTransfer((u32*)texPixels, GX_BUFFER_DIM(256, 256), (u32*)sphere_tex.data, GX_BUFFER_DIM(256, 256), TEXTURE_TRANSFER_FLAGS);
-            
+        
+    gspWaitForPPF();
+    
     float stripeSize = 200.0;
     for(int x = 0; x < SCREEN_WIDTH + 10; x += 10) {
         for(int y = 0; y < SCREEN_HEIGHT + 10; y += 10) {
@@ -351,6 +392,8 @@ void effectGreetsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRi
     // Overlay
     fullscreenQuad(logo_tex, 0.0, 0.0);
     
+    fade();
+    
     if(iod > 0.0) {
         // Right eye
         C3D_FrameDrawOn(targetRight);
@@ -362,11 +405,15 @@ void effectGreetsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRi
         effectGreetsDraw(iod, time, escalate);
         
         // Overlay
-        fullscreenQuad(logo_tex, 0.0, 0.0);        
+        fullscreenQuad(logo_tex, 0.0, 0.0);
+        
+        fade();
     }
 }
 
 void effectGreetsExit() {
+    gspWaitForP3D();
+    
     // Free the texture
     C3D_TexDelete(&sphere_tex);
     linearFree(texPixels);

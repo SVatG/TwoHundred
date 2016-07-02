@@ -174,6 +174,8 @@ void effectTunnelRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRi
     // Overlay
     fullscreenQuad(logo_tex, 0.0, 0.0);
     
+    fade();
+    
     if(iod > 0.0) {
         // Right eye
         C3D_FrameDrawOn(targetRight);
@@ -183,6 +185,8 @@ void effectTunnelRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targetRi
         
         // Overlay
         fullscreenQuad(logo_tex, 0.0, 0.0);
+        
+        fade();
     }
 }
 

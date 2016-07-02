@@ -7,6 +7,9 @@
 
 #define RING_MAX_VERTS 1000
 
+#include "Font.h"
+#include "MonoFont.h"
+
 static DVLB_s* vshader_dvlb;
 static shaderProgram_s program;
 
@@ -24,8 +27,16 @@ static Bitmap screen;
 static C3D_Tex screen_tex;
 static C3D_Tex logo_tex;
 
+static Pixel* scrollPixels;
+static Bitmap scroller;
+static C3D_Tex scroll_tex;
+
 static vertex* vboVertsSphere;
 static vertex* vboVertsRing;
+
+extern Font OL16Font; 
+
+#define SCROLLERTEXT "                                          hello nordlicht! welcome to our first prod on the 3DS! what a weird cross between a modern gpu and hardware straight from the 90s this is. in any case, we hope you will continue to enjoy wonderful SVatG products in the future. love, halcy."
 
 void effectIcosphereInit(void) {
     // Load the vertex shader, create a shader program and bind it
@@ -35,9 +46,13 @@ void effectIcosphereInit(void) {
 
     C3D_TexInit(&sphere_tex, 256, 256, GPU_RGBA8);
     C3D_TexInit(&screen_tex, SCREEN_TEXTURE_WIDTH, SCREEN_TEXTURE_HEIGHT, GPU_RGBA8);
+    C3D_TexInit(&scroll_tex, 512, 512, GPU_RGBA8);
     
     screenPixels = (Pixel*)linearAlloc(SCREEN_TEXTURE_WIDTH * SCREEN_TEXTURE_HEIGHT * sizeof(Pixel));
     InitialiseBitmap(&screen, SCREEN_TEXTURE_WIDTH, SCREEN_TEXTURE_HEIGHT, BytesPerRowForWidth(SCREEN_TEXTURE_WIDTH), screenPixels);
+    
+    scrollPixels = (Pixel*)linearAlloc(512 * 512 * sizeof(Pixel));
+    InitialiseBitmap(&scroller, 512, 512, BytesPerRowForWidth(512), scrollPixels);
     
     vboVertsSphere = (vertex*)linearAlloc(sizeof(vertex) * icosphereNumFaces * 3);
     vboVertsRing = (vertex*)linearAlloc(sizeof(vertex) * RING_MAX_VERTS);
@@ -227,10 +242,10 @@ static void renderRing(float iod, float time, float escalate) {
             vec3mul(vec3(ringAngleStopSin, 0.0, ringAngleStopCos), 0.7),
             vec3mul(vec3(ringAngleStopSin, 0.2, ringAngleStopCos), 0.7),
             vec3mul(vec3(ringAngleStartSin, 0.2, ringAngleStartCos), 0.7),
-            vec2(0, 0),
-            vec2(1, 0),
-            vec2(0, 1),
-            vec2(1, 1)
+            vec2(0.03125 * (sect), 1.0 - 0.03125),
+            vec2(0.03125 * (1 + sect), 1.0 - 0.03125),
+            vec2(0.03125 * (sect), 1.0),
+            vec2(0.03125 * (1 + sect), 1.0)
         );
     }
     
@@ -253,9 +268,8 @@ static void renderRing(float iod, float time, float escalate) {
     BufInfo_Add(bufInfo, vboVertsRing, sizeof(vertex), 3, 0x210);
 
     // Load the texture and bind it to the first texture unit
-    C3D_TexUpload(&sphere_tex, svatg_bin);
-    C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
-    C3D_TexBind(0, &sphere_tex);
+    C3D_TexBind(0, &scroll_tex);
+    C3D_TexSetFilter(&scroll_tex, GPU_NEAREST, GPU_NEAREST);
     
     // Calculate the modelView matrix
     C3D_Mtx modelView;
@@ -263,50 +277,18 @@ static void renderRing(float iod, float time, float escalate) {
     Mtx_Translate(&modelView, 0.0, 0.0, -1.5);
     Mtx_RotateX(&modelView, -0.3, true);
     Mtx_RotateZ(&modelView, -0.3, true);
-    Mtx_RotateY(&modelView, time * 0.002, true);
+    Mtx_RotateY(&modelView, -3.14, true);
     
     // Update the uniforms
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_projection, &projection);
     C3D_FVUnifMtx4x4(GPU_VERTEX_SHADER, uLoc_modelView,  &modelView);
 
     C3D_TexEnv* env = C3D_GetTexEnv(0);
-    C3D_TexEnvSrc(env, C3D_RGB, GPU_FRAGMENT_PRIMARY_COLOR, GPU_FRAGMENT_SECONDARY_COLOR, 0);
-    C3D_TexEnvOp(env, C3D_RGB, 0, 0, 0);
-    C3D_TexEnvFunc(env, C3D_RGB, GPU_ADD);
-
-    C3D_TexEnv* env2 = C3D_GetTexEnv(1);
-    C3D_TexEnvSrc(env2, C3D_RGB, GPU_TEXTURE0, GPU_PREVIOUS, 0);
-    C3D_TexEnvOp(env2, C3D_RGB, 0, 0, 0);
-    C3D_TexEnvFunc(env2, C3D_RGB, GPU_MODULATE);
+    C3D_TexEnvSrc(env, C3D_Both, GPU_TEXTURE0, 0, 0);
+    C3D_TexEnvOp(env, C3D_Both, 0, 0, 0);
+    C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
     
-    C3D_TexEnv* env3 = C3D_GetTexEnv(2);
-    C3D_TexEnvSrc(env3, C3D_RGB, GPU_FRAGMENT_SECONDARY_COLOR, GPU_PREVIOUS, 0);
-    C3D_TexEnvOp(env3, C3D_RGB, GPU_TEVOP_RGB_SRC_ALPHA , 0, 0);
-    C3D_TexEnvFunc(env3, C3D_RGB, GPU_ADD);
-    
-    static const C3D_Material lightMaterial = {
-        { 0.2f, 0.0f, 0.0f }, //ambient
-        { 0.4f, 0.4f, 0.4f }, //diffuse
-        { 0.8f, 0.8f, 0.8f }, //specular0
-        { 0.0f, 0.0f, 0.0f }, //specular1
-        { 0.0f, 0.0f, 0.0f }, //emission
-    };
-
-    C3D_LightEnvInit(&lightEnv);
-    C3D_LightEnvBind(&lightEnv);
-    C3D_LightEnvMaterial(&lightEnv, &lightMaterial);
-
-    LightLut_Phong(&lut_Phong, 3.0);
-    C3D_LightEnvLut(&lightEnv, GPU_LUT_D0, GPU_LUTINPUT_LN, false, &lut_Phong);
-    
-    LightLut_FromFunc(&lut_shittyFresnel, badFresnel, 0.6, false);
-    C3D_LightEnvLut(&lightEnv, GPU_LUT_FR, GPU_LUTINPUT_NV, false, &lut_shittyFresnel);
-    C3D_LightEnvFresnel(&lightEnv, GPU_PRI_SEC_ALPHA_FRESNEL);
-    C3D_FVec lightVec = { { 0.0, 0.0, 0.5, 0.0 } };
-
-    C3D_LightInit(&light, &lightEnv);
-    C3D_LightColor(&light, 1.0, 1.0, 1.0);
-    C3D_LightPosition(&light, &lightVec);
+    C3D_LightEnvBind(0);
     
     // Depth test is back
     C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
@@ -316,8 +298,6 @@ static void renderRing(float iod, float time, float escalate) {
     
     // Draw the VBO
     C3D_DrawArrays(GPU_TRIANGLES, 0, ringVertCount);
-    
-    C3D_LightEnvBind(0);
 }
 
 void effectIcosphereRenderSingle(float iod, float time, float escalate) {
@@ -354,6 +334,14 @@ void effectIcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
     GX_DisplayTransfer((u32*)screenPixels, GX_BUFFER_DIM(SCREEN_TEXTURE_WIDTH, SCREEN_TEXTURE_HEIGHT), (u32*)screen_tex.data, GX_BUFFER_DIM(SCREEN_TEXTURE_WIDTH, SCREEN_TEXTURE_HEIGHT), TEXTURE_TRANSFER_FLAGS);
     gspWaitForPPF();
     
+    float sshift = -time * 0.57;
+    FillBitmap(&scroller, RGBAf(0.0, 0.0, 0.0, 0.0));
+    DrawSimpleString(&scroller, &OL16Font, sshift, 0, RGBAf(1.0, 1.0, 1.0, 1.0), SCROLLERTEXT);
+    
+    GSPGPU_FlushDataCache(scrollPixels, 512 * 512 * sizeof(Pixel));
+    GX_DisplayTransfer((u32*)scrollPixels, GX_BUFFER_DIM(512, 512), (u32*)scroll_tex.data, GX_BUFFER_DIM(512, 512), TEXTURE_TRANSFER_FLAGS);
+    gspWaitForPPF();
+    
     // Left eye
     C3D_FrameDrawOn(targetLeft);
     
@@ -365,6 +353,9 @@ void effectIcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
 
     // Overlay
     fullscreenQuad(logo_tex, 0.0, 0.0);
+    
+    // Fade
+    fade();
     
     if(iod > 0.0) {
         // Right eye
@@ -378,6 +369,9 @@ void effectIcosphereRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
         
         // Overlay
         fullscreenQuad(logo_tex, 0.0, 0.0);
+        
+        // Fade
+        fade();
     }
 }
 
@@ -396,4 +390,5 @@ void effectIcosphereExit(void) {
     
     // Free the screen bitmap
     linearFree(screenPixels);
+    linearFree(scrollPixels);
 }

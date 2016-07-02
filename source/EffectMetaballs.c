@@ -91,9 +91,9 @@ static inline float field(float xx, float yy, float zz, float* xa, float* ya, fl
     }
 
     float border = fmax(fmax(
-        abs((xx - GRID_OFFSET) * 3.1), 
-        abs((yy - GRID_OFFSET) * 3.1)), 
-        abs((zz - GRID_OFFSET) * 3.1));
+        abs((xx - (float)GRID_OFFSET) * 3.1), 
+        abs((yy - (float)GRID_OFFSET) * 3.1)), 
+        abs((zz - (float)GRID_OFFSET) * 3.1));
     //val = fmax(-(val - 16.0 * (sin(time * 0.05) * 0.5)), border - 0.5);
     val = fmax(-(val - 4.0), border - 0.5);
     return(val);
@@ -259,6 +259,7 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     C3D_TexEnvOp(env3, C3D_RGB, GPU_TEVOP_RGB_SRC_ALPHA , 0, 0);
     C3D_TexEnvFunc(env3, C3D_RGB, GPU_ADD);
     
+    
     static const C3D_Material lightMaterial =
     {
         { 0.2f, 0.2f, 0.2f }, //ambient
@@ -284,9 +285,10 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     C3D_LightInit(&light, &lightEnv);
     C3D_LightColor(&light, 1.0, 1.0, 1.0);
     C3D_LightPosition(&light, &lightVec);
+    C3D_LightTwoSideDiffuse(&light, true);
     
     // Depth test is back
-    C3D_DepthTest(true, GPU_GEQUAL, GPU_WRITE_ALL);
+    C3D_DepthTest(true, GPU_GREATER, GPU_WRITE_ALL);
     
     // To heck with culling
     C3D_CullFace(GPU_CULL_NONE);
@@ -348,6 +350,8 @@ void effectMetaballsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
     // Overlay
     fullscreenQuad(logo_tex, 0.0, 0.0);
     
+    fade();
+    
     if(iod > 0.0) {
         // Right eye
         C3D_FrameDrawOn(targetRight);
@@ -360,6 +364,8 @@ void effectMetaballsRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
         
         // Overlay
         fullscreenQuad(logo_tex, 0.0, 0.0);
+        
+        fade();
     }
 }
 
@@ -378,5 +384,5 @@ void effectMetaballsExit() {
     // Free the bitmaps
     linearFree(screenPixels);
     linearFree(texPixels);
-    free(valueGrid);
+//     free(valueGrid); // "delayed free"
 }

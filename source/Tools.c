@@ -72,6 +72,8 @@ void fullscreenQuad(C3D_Tex texture, float iod, float iodmult) {
     C3D_TexSetFilter(&texture, GPU_LINEAR, GPU_NEAREST);
     C3D_TexBind(0, &texture);
 
+    C3D_LightEnvBind(0);
+    
     // Configure the first fragment shading substage to just pass through the texture color
     // See https://www.opengl.org/sdk/docs/man2/xhtml/glTexEnv.xml for more insight
     C3D_TexEnv* env = C3D_GetTexEnv(0);
@@ -80,19 +82,19 @@ void fullscreenQuad(C3D_Tex texture, float iod, float iodmult) {
     C3D_TexEnvFunc(env, C3D_Both, GPU_REPLACE);
     
     C3D_TexEnv* env2 = C3D_GetTexEnv(1);
-    C3D_TexEnvSrc(env2, C3D_RGB, GPU_PREVIOUS, 0, 0);
-    C3D_TexEnvOp(env2, C3D_RGB, 0, 0, 0);
-    C3D_TexEnvFunc(env2, C3D_RGB, GPU_REPLACE);
+    C3D_TexEnvSrc(env2, C3D_Both, GPU_PREVIOUS, 0, 0);
+    C3D_TexEnvOp(env2, C3D_Both, 0, 0, 0);
+    C3D_TexEnvFunc(env2, C3D_Both, GPU_REPLACE);
     
     C3D_TexEnv* env3 = C3D_GetTexEnv(2);
-    C3D_TexEnvSrc(env3, C3D_RGB, GPU_PREVIOUS, 0, 0);
-    C3D_TexEnvOp(env3, C3D_RGB, 0, 0, 0);
-    C3D_TexEnvFunc(env3, C3D_RGB, GPU_REPLACE);
+    C3D_TexEnvSrc(env3, C3D_Both, GPU_PREVIOUS, 0, 0);
+    C3D_TexEnvOp(env3, C3D_Both, 0, 0, 0);
+    C3D_TexEnvFunc(env3, C3D_Both, GPU_REPLACE);
     
     C3D_TexEnv* env4 = C3D_GetTexEnv(3);
-    C3D_TexEnvSrc(env4, C3D_RGB, GPU_PREVIOUS, 0, 0);
-    C3D_TexEnvOp(env4, C3D_RGB, 0, 0, 0);
-    C3D_TexEnvFunc(env4, C3D_RGB, GPU_REPLACE);
+    C3D_TexEnvSrc(env4, C3D_Both, GPU_PREVIOUS, 0, 0);
+    C3D_TexEnvOp(env4, C3D_Both, 0, 0, 0);
+    C3D_TexEnvFunc(env4, C3D_Both, GPU_REPLACE);
     
     float preShift = iodmult > 0.0 ? 0.05 : 0.0;
     float textureLeft = -iod * iodmult + preShift;
@@ -135,4 +137,14 @@ int32_t mulf32(int32_t a, int32_t b) {
 int32_t divf32(int32_t a, int32_t b) {
         long long result = (long long)(a << 12) / (long long)b;
         return (int32_t)(result);
+}
+
+
+extern C3D_Tex fade_tex;
+extern float fadeVal;
+
+void fade() {
+    if(fadeVal > 0) {
+        fullscreenQuad(fade_tex, 0.0, 0.0);
+    }
 }

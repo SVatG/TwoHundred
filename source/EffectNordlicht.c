@@ -356,6 +356,8 @@ void effectNordlichtRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
     effectNordlichtDrawLighthouse(-iod, time, escalate);
     fullscreenQuad(logo_tex, 0.0, 0.0);
     
+    fade();
+    
     if(iod > 0.0) {
         // Right eye
         C3D_FrameDrawOn(targetRight);
@@ -364,6 +366,8 @@ void effectNordlichtRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
         effectNordlichtDraw(iod, time, escalate);
         effectNordlichtDrawLighthouse(iod, time, escalate);
         fullscreenQuad(logo_tex, 0.0, 0.0);
+        
+        fade();
     }
 }
 

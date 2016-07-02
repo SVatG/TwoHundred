@@ -3,45 +3,29 @@
 int WidthOfSimpleString(const Font *font,const void *str)
 {
 	const uint8_t *cstring=str;
-	uint8_t prev=0;
 	int len=0;
-	while(*cstring)
-	{
-		int c=*cstring++&0xff;
-		int kerning=KerningForCharacters(font,c,prev);
-		int spacing=SpacingForCharacter(font,c);
-		len+=kerning+spacing;
-		prev=c;
-	}
+	while(*cstring) len+=WidthOfCharacter(font,*cstring++);
 	return len;
 }
 
 void DrawSimpleString(Bitmap *bitmap,const Font *font,int x,int y,Pixel col,const void *str)
 {
 	const uint8_t *cstring=str;
-	uint8_t prev=0;
 	while(*cstring)
 	{
-		int c=*cstring++&0xff;
-		int kerning=KerningForCharacters(font,c,prev);
-		int spacing=SpacingForCharacter(font,c);
-		DrawCharacter(bitmap,font,x+kerning,y,col,c);
-		x+=kerning+spacing;
-		prev=c;
+		DrawCharacter(bitmap,font,x,y,col,*cstring);
+		x+=WidthOfCharacter(font,*cstring);
+		cstring++;
 	}
 }
 
 void CompositeSimpleString(Bitmap *bitmap,const Font *font,int x,int y,Pixel col,CompositionMode comp,const void *str)
 {
 	const uint8_t *cstring=str;
-	uint8_t prev=0;
 	while(*cstring)
 	{
-		int c=*cstring++&0xff;
-		int kerning=KerningForCharacters(font,c,prev);
-		int spacing=SpacingForCharacter(font,c);
-		CompositeCharacter(bitmap,font,x+kerning,y,col,comp,c);
-		x+=kerning+spacing;
-		prev=c;
+		CompositeCharacter(bitmap,font,x,y,col,comp,*cstring);
+		x+=WidthOfCharacter(font,*cstring);
+		cstring++;
 	}
 }

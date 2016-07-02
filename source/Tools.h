@@ -88,4 +88,6 @@ inline int buildQuadProjectiveXY(vertex* vert, vec3_t a, vec3_t b, vec3_t c, vec
         return 6;
 }
 
+extern void fade();
+
 #endif

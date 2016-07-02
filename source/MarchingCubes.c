@@ -418,7 +418,7 @@ uint32_t polygonise(vec3_t* corners, float* values, uint32_t isolevel, vertex* v
         );
         
         setVert(vertices, a, vec2(a.x, a.y)); vertices++;
-        setVert(vertices, b, vec2(b.y, b.y)); vertices++;
+        setVert(vertices, b, vec2(b.x, b.y)); vertices++;
         setVert(vertices, c, vec2(c.x, c.y)); vertices++;
         
         numVerts += 3;
