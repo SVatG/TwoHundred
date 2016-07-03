@@ -180,12 +180,17 @@ int main() {
             } else if(escalate < 7) {
                 effectNordlichtRender(targetLeft, targetRight, iod, time, escalate - curEscalate);
             }
+            else {
+                break;
+            }
+            
+            
 //             effectMetaballsRender(targetLeft, targetRight, iod, time, 1);
         C3D_FrameEnd(0);
     }
     
     // Clean up
-//     effectNordlichtExit();
+    effectNordlichtExit();
 //     effectMetaballsExit();
     
     linearFree(fadePixels);
