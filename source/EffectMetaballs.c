@@ -228,7 +228,7 @@ void effectMetaballsRenderBalls(float iod, float time, float escalate) {
     BufInfo_Add(bufInfo, vboVerts, sizeof(vertex), 3, 0x210);
     
 //     C3D_TexUpload(&sphere_tex, svatg2_bin);
-    C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
+//     C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
     C3D_TexBind(0, &sphere_tex);
     
     // Calculate the modelView matrix

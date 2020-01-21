@@ -352,8 +352,8 @@ void effectNordlichtRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
     C3D_FrameDrawOn(targetLeft);
     
     // Actual scene
-    effectNordlichtDraw(-iod, time, escalate);
-    effectNordlichtDrawLighthouse(-iod, time, escalate);
+    effectNordlichtDraw(iod, time, escalate);
+    effectNordlichtDrawLighthouse(iod, time, escalate);
     fullscreenQuad(logo_tex, 0.0, 0.0);
     
     fade();
@@ -363,8 +363,8 @@ void effectNordlichtRender(C3D_RenderTarget* targetLeft, C3D_RenderTarget* targe
         C3D_FrameDrawOn(targetRight);
     
         // Actual scene
-        effectNordlichtDraw(iod, time, escalate);
-        effectNordlichtDrawLighthouse(iod, time, escalate);
+        effectNordlichtDraw(-iod, time, escalate);
+        effectNordlichtDrawLighthouse(-iod, time, escalate);
         fullscreenQuad(logo_tex, 0.0, 0.0);
         
         fade();

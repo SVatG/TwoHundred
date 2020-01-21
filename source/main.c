@@ -13,6 +13,18 @@ float fadeVal;
 #define min(a, b) (((a)<(b))?(a):(b))
 #define max(a, b) (((a)>(b))?(a):(b))
 
+// void soundFill(void *audioBuffer,size_t offset, size_t size, int frequency ) {
+//     u32 *dest = (u32*)audioBuffer;
+// 
+//     for (int i=0; i<size; i++) {
+//         s16 sample = INT16_MAX * sin(frequency*(2*M_PI)*(offset+i)/SAMPLERATE);
+//         dest[i] = (sample<<16) | (sample & 0xffff);
+//     }
+// 
+//     DSP_FlushDataCache(audioBuffer,size);
+// 
+// }
+
 int main() {
     // Initialize graphics
     gfxInit(GSP_RGBA8_OES, GSP_BGR8_OES, false);
@@ -33,15 +45,40 @@ int main() {
     C3D_TexInit(&fade_tex, SCREEN_TEXTURE_HEIGHT, SCREEN_TEXTURE_WIDTH, GPU_RGBA8);
     
     // Sound on
-    csndInit();
+    // csndInit();
+    ndspInit();
+    
+    ndspSetOutputMode(NDSP_OUTPUT_STEREO);
 
+    ndspChnSetInterp(0, NDSP_INTERP_LINEAR);
+    ndspChnSetRate(0, 32000);
+    ndspChnSetFormat(0, NDSP_FORMAT_MONO_PCM16);
+    
+    float mix[12];
+    memset(mix, 0, sizeof(mix));
+    mix[0] = 1.0;
+    mix[1] = 1.0;    
+    ndspChnSetMix(0, mix);
+
+    u32 *audioBuffer = (u32*)linearAlloc(music_bin_size);
+    memcpy(audioBuffer, music_bin, music_bin_size);
+    DSP_FlushDataCache(audioBuffer, music_bin_size);
+    
+    ndspWaveBuf waveBuf;    
+    memset(&waveBuf,0, sizeof(ndspWaveBuf));
+    waveBuf.data_vaddr = &audioBuffer[0];
+    waveBuf.nsamples = music_bin_size / sizeof(uint16_t);
+    
     // Play music
-    csndPlaySound(0x8, SOUND_ONE_SHOT | SOUND_FORMAT_16BIT, 32000, 1.0, 0.0, (u32*)music_bin, NULL, music_bin_size);
+    ndspChnWaveBufAdd(0, &waveBuf);
+    //csndPlaySound(0x8, SOUND_ONE_SHOT | SOUND_FORMAT_16BIT, 32000, 1.0, 0.0, (u32*)music_bin, NULL, music_bin_size);
+    
     int64_t startTick = svcGetSystemTick();
     
     // Start up first effect
     effectTunnelInit();
 //     effectMetaballsInit();
+   // effectNordlichtInit();
     
     int currentSwitchTick = 0;
     int64_t switchTicks[8];
@@ -55,7 +92,7 @@ int main() {
     float fadeTime = 0.3;
     float cpuHz = 268123480.0;
     float fadeTicks = fadeTime * cpuHz;
-    
+
     int64_t tunnelFade = (800985.0 / songOrigRate) * cpuHz - fadeTicks;
     
     // Tunnel
@@ -85,8 +122,20 @@ int main() {
     int haveEscalated = 0;
     int curEscalate = escalate;
     float effectStart = 0.0;
+    int fc = 4038;
+    int64_t fakeTick = startTick;
+    
+    fakeTick = startTick + ((3230215.0 - microfudge) / songOrigRate) * cpuHz;
+    currentSwitchTick = 0;
+    escalate = 0;
+    curEscalate = escalate;
+    
+    int64_t tickAdvance = (int64_t)((float)cpuHz / 60.0);
+    
     while (aptMainLoop()) {
         int64_t currentTick = svcGetSystemTick() - startTick;
+        //int64_t currentTick = fakeTick - startTick;
+        fakeTick = fakeTick + tickAdvance;
         float time = currentTick * 0.000001;
             
         fadeVal = 0.0;
@@ -183,20 +232,41 @@ int main() {
             else {
                 break;
             }
-            
-            
 //             effectMetaballsRender(targetLeft, targetRight, iod, time, 1);
         C3D_FrameEnd(0);
+        
+        //gspWaitForP3D();
+        //gspWaitForPPF();
+        /*
+        u8* fbl = gfxGetFramebuffer(GFX_TOP, GFX_LEFT, NULL, NULL);
+        u8* fbr = gfxGetFramebuffer(GFX_TOP, GFX_RIGHT, NULL, NULL);
+        
+        char fname[255];
+        sprintf(fname, "fb_left_%08d.raw", fc);
+        
+        FILE* file = fopen(fname,"w");
+        fwrite(fbl, sizeof(int32_t), SCREEN_HEIGHT * SCREEN_WIDTH, file);
+        fflush(file);
+        fclose(file);
+        
+        sprintf(fname, "fb_right_%08d.raw", fc);            
+        file = fopen(fname,"w");
+        fwrite(fbr, sizeof(int32_t), SCREEN_HEIGHT * SCREEN_WIDTH, file);
+        fflush(file);
+        fclose(file);
+        */
+        fc++;   
     }
     
     // Clean up
     effectNordlichtExit();
-//     effectMetaballsExit();
+    //effectMetaballsExit();
     
     linearFree(fadePixels);
     
     // Sound off
-    csndExit();
+    ndspExit();
+    linearFree(audioBuffer);
     
     // Deinitialize graphics
     C3D_Fini();

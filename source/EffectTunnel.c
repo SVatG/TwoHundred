@@ -7,7 +7,7 @@
 #include <math.h>
 
 #include "Tools.h"
-#include "vshader_shbin.h"
+#include <vshader_shbin.h>
 #include "tunnel_bin.h"
 #include "tunnel_logo_bin.h"
 #include "Perlin.h"
@@ -116,9 +116,7 @@ void effectTunnelDraw(float iod, float time, float escalate) {
     // Compute the projection matrix
     Mtx_PerspStereoTilt(&projection, 65.0f*M_PI/180.0f, 400.0f/240.0f, 0.01f, 1000.0f, iod, 2.0f);
 
-    // Load the texture and bind it to the first texture unit
-    C3D_TexUpload(&sphere_tex, tunnel_bin);
-    C3D_TexSetFilter(&sphere_tex, GPU_LINEAR, GPU_NEAREST);
+    // Bind texture to the first texture unit
     C3D_TexBind(0, &sphere_tex);
     
     // Calculate the modelView matrix
